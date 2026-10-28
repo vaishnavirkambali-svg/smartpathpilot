@@ -126,6 +126,7 @@ $env:BASE="http://127.0.0.1:8000"; node ui_check.js
 7. Open the Traffic profile list: Live is greyed out ("not configured") unless `TOMTOM_KEY` is set. The badge always says NOT LIVE for the other profiles.
 8. Tick "Check weather along the route": with internet you see forecast values and warnings; offline you see "Weather unavailable: ..." and the route still appears.
 9. Set From and To to the same place with no stops: a clear error message appears.
+<<<<<<< HEAD
 
 ---
 # CityPulse and Gradient Descent Lab
@@ -158,3 +159,4 @@ $env:CITYPULSE_DB="$PWD\ui_check.db"; $env:CITYPULSE_ADMIN_TOKEN="tok"
 # start the server in another terminal with the same two variables, using an empty database, then:
 $env:BASE="http://127.0.0.1:8000"; node ui_check_pages.js
 ```
+
