@@ -1,0 +1,37 @@
+segment_id,from_id,from_location,to_id,to_location,road_name,distance_km,freeflow_speed_kmph,freeflow_time_min,peak_speed_kmph,peak_time_min,peak_traffic_level,offpeak_speed_kmph,offpeak_time_min,offpeak_traffic_level,road_condition,pothole_score_0to5,waterlogging_prone
+S01,1,Majestic,2,MG Road,Kasturba Rd / Cubbon Rd,4.97,35,8.5,18.4,16.2,Heavy,26.9,11.1,Moderate,Good,1,No
+S02,1,Majestic,12,Malleshwaram,Sampige Rd / CV Raman Rd,4.0,35,6.9,19.4,12.3,Heavy,29.2,8.2,Free,Fair,2,No
+S03,1,Majestic,18,Rajajinagar,Dr Rajkumar Rd,3.42,40,5.1,23.5,8.7,Moderate,33.3,6.2,Free,Fair,2,No
+S04,1,Majestic,13,Jayanagar,Lalbagh Rd / KR Rd,8.12,35,13.9,18.4,26.4,Heavy,26.9,18.1,Moderate,Fair,2,No
+S05,1,Majestic,14,Banashankari,Mysore Rd - Kanakapura Rd link,8.17,35,14.0,19.4,25.2,Heavy,29.2,16.8,Free,Fair,3,No
+S06,2,MG Road,3,Indiranagar,Old Madras Rd,4.83,35,8.3,17.5,16.6,Heavy,26.9,10.8,Moderate,Good,1,No
+S07,2,MG Road,4,Koramangala,Hosur Rd via Richmond Rd,6.36,35,10.9,16.7,22.9,Heavy,25.0,15.3,Moderate,Fair,2,No
+S08,2,MG Road,17,Domlur,Old Airport Rd,4.99,40,7.5,21.1,14.2,Heavy,30.8,9.7,Moderate,Good,1,No
+S09,3,Indiranagar,17,Domlur,100 Feet Rd / CMH Rd,2.53,35,4.3,17.5,8.7,Heavy,26.9,5.6,Moderate,Good,1,No
+S10,3,Indiranagar,9,KR Puram,Old Madras Rd (to KR Puram),8.81,40,13.2,17.4,30.4,Heavy,28.6,18.5,Moderate,Fair,3,Yes
+S11,17,Domlur,7,Marathahalli,Old Airport Rd (to Marathahalli),8.81,45,11.7,18.8,28.2,Severe,32.1,16.4,Moderate,Fair,2,No
+S12,17,Domlur,4,Koramangala,Intermediate Ring Rd,4.23,40,6.3,20.0,12.7,Heavy,30.8,8.2,Moderate,Fair,2,No
+S13,4,Koramangala,5,Silk Board,Hosur Rd / Inner Ring Rd,2.54,35,4.4,13.5,11.3,Severe,23.3,6.5,Moderate,Fair,3,Yes
+S14,4,Koramangala,16,Bellandur,Sarjapur Rd / ORR link,7.63,40,11.4,16.7,27.5,Severe,28.6,16.0,Moderate,Poor,4,Yes
+S15,5,Silk Board,6,HSR Layout,Hosur Rd - HSR link,3.51,40,5.3,18.2,11.6,Heavy,28.6,7.4,Moderate,Fair,3,Yes
+S16,5,Silk Board,13,Jayanagar,BTM - Jayanagar Rd,4.29,35,7.4,17.5,14.7,Heavy,26.9,9.6,Moderate,Fair,2,No
+S17,5,Silk Board,15,Electronic City,Hosur Rd / Elevated Expressway,11.7,60,11.7,24.0,29.2,Severe,46.2,15.2,Moderate,Good,1,No
+S18,5,Silk Board,19,JP Nagar,Bannerghatta Rd / JP Nagar link,5.55,40,8.3,19.0,17.5,Heavy,30.8,10.8,Moderate,Fair,3,No
+S19,6,HSR Layout,16,Bellandur,Outer Ring Rd (HSR - Bellandur),5.14,45,6.9,18.0,17.1,Severe,32.1,9.6,Moderate,Fair,3,Yes
+S20,16,Bellandur,7,Marathahalli,Outer Ring Rd (Bellandur - Marathahalli),4.99,50,6.0,17.9,16.8,Severe,33.3,9.0,Moderate,Fair,3,Yes
+S21,7,Marathahalli,8,Whitefield,Whitefield Main Rd / ITPL Rd,7.14,40,10.7,15.4,27.8,Severe,28.6,15.0,Moderate,Poor,4,Yes
+S22,7,Marathahalli,9,KR Puram,Outer Ring Rd (Marathahalli - KR Puram),7.28,50,8.7,20.0,21.8,Severe,35.7,12.2,Moderate,Fair,3,Yes
+S23,9,KR Puram,8,Whitefield,Hoskote - Whitefield Rd,9.32,45,12.4,20.5,27.3,Heavy,34.6,16.2,Moderate,Fair,3,No
+S24,9,KR Puram,10,Hebbal,Outer Ring Rd (KR Puram - Hebbal),14.55,50,17.5,20.8,41.9,Severe,35.7,24.4,Moderate,Fair,2,Yes
+S25,10,Hebbal,12,Malleshwaram,Bellary Rd / CV Raman link,6.56,40,9.8,20.0,19.7,Heavy,30.8,12.8,Moderate,Good,1,No
+S26,10,Hebbal,11,Yeshwanthpur,Outer Ring Rd (Hebbal - Yeshwanthpur),8.1,45,10.8,20.5,23.8,Heavy,34.6,14.0,Moderate,Fair,2,No
+S27,10,Hebbal,21,Yelahanka,Bellary Rd (NH44),9.38,60,9.4,35.3,15.9,Moderate,50.0,11.3,Free,Good,1,No
+S28,21,Yelahanka,20,Kempegowda Airport,Airport Rd (NH44),21.01,80,15.8,57.1,22.1,Moderate,72.7,17.3,Free,Good,0,No
+S29,10,Hebbal,20,Kempegowda Airport,Hebbal - Airport Rd (NH44),28.14,70,24.1,38.9,43.4,Heavy,58.3,28.9,Free,Good,1,No
+S30,11,Yeshwanthpur,12,Malleshwaram,Tumkur Rd - Malleshwaram link,4.98,40,7.5,22.2,13.4,Heavy,33.3,9.0,Free,Fair,2,No
+S31,11,Yeshwanthpur,18,Rajajinagar,Tumkur Rd / Chord Rd,5.68,40,8.5,21.1,16.2,Heavy,33.3,10.2,Free,Fair,2,No
+S32,18,Rajajinagar,12,Malleshwaram,Sankey Rd / 8th Main,2.5,35,4.3,19.4,7.7,Heavy,29.2,5.1,Free,Fair,2,No
+S33,13,Jayanagar,19,JP Nagar,Jayanagar - JP Nagar Rd,2.93,35,5.0,20.6,8.5,Moderate,29.2,6.0,Free,Good,1,No
+S34,13,Jayanagar,14,Banashankari,Kanakapura Rd link,6.62,35,11.3,19.4,20.4,Heavy,29.2,13.6,Free,Fair,2,No
+S35,19,JP Nagar,14,Banashankari,Kanakapura Rd,6.14,40,9.2,21.1,17.5,Heavy,30.8,12.0,Moderate,Fair,3,No
+S36,15,Electronic City,6,HSR Layout,Hosur Rd - HSR / Hosa Rd,9.77,45,13.0,22.5,26.1,Heavy,34.6,16.9,Moderate,Fair,3,No

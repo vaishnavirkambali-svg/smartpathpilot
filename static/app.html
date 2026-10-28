@@ -1,0 +1,213 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SmartPathPilot – Bengaluru route optimizer</title>
+<link rel="stylesheet" href="/static/vendor/leaflet.css">
+<style>
+:root{--bg:#eef2f3;--panel:#fff;--ink:#12232b;--mute:#5b6b72;--line:#d6dedc;--acc:#0b6e7d;--free:#2e9e6b;--mod:#d9a21a;--heavy:#e0662b;--sev:#b3263e}
+*{box-sizing:border-box}body{margin:0;font:14.5px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg);height:100vh;display:grid;grid-template-rows:auto 1fr}
+header{background:var(--panel);border-bottom:1px solid var(--line);padding:10px 16px;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
+header h1{font-size:18px;margin:0}header small{color:var(--mute)}.badges{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.badge{font-size:12px;font-weight:600;padding:3px 9px;border-radius:12px;border:1px solid}
+.b-ok{color:#1c7a4f;background:#e6f5ee;border-color:#a9dcc3}.b-sim{color:#8a5a00;background:#fff4dc;border-color:#f0d08a}.b-ml{color:#1a4f9c;background:#e8f0fc;border-color:#a9c3ee}
+main{display:grid;grid-template-columns:400px 1fr;min-height:0}#side{overflow:auto;padding:14px;display:flex;flex-direction:column;gap:12px}#map{min-height:360px;background:#dfe7e6}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}.box h2{font-size:13px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em;color:var(--mute)}
+label{display:block;font-size:13px;color:var(--mute);margin:8px 0 3px}select,input[type=range]{width:100%}select{padding:8px;border:1px solid var(--line);border-radius:6px;background:#fff;font:inherit;color:var(--ink)}
+.row{display:flex;gap:8px;align-items:end}.row>div{flex:1}button{font:inherit;cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:6px;padding:8px 10px;color:var(--ink)}button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.seg{display:flex;gap:6px}.seg button{flex:1}.hint{font-size:12.5px;color:var(--mute);margin:6px 0 0}.w{display:flex;gap:8px;align-items:center;font-size:13px}.w span{width:84px;color:var(--mute)}
+.card{border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:8px;cursor:pointer}.card.sel{border:2px solid var(--acc);padding:9px;background:#f4fafb}
+.card h3{margin:0;font-size:15px;display:flex;justify-content:space-between}.pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.pill{font-size:12px;padding:2px 8px;border-radius:10px;background:#eef2f3;border:1px solid var(--line)}.pill i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.win{color:var(--acc);font-weight:600;margin-top:8px}.err{color:var(--sev);font-weight:600}.steps{margin:6px 0 0;padding-left:18px;font-size:13px}.steps li span{color:var(--mute)}
+.bars{display:flex;align-items:end;gap:2px;height:70px;margin-top:8px}.bars div{flex:1;border-radius:2px 2px 0 0;background:var(--line)}.bars .best{background:var(--free)}.bars .cur{background:var(--acc)}
+input[type=text]{width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font:inherit;color:var(--ink)}.ac{position:relative}
+.sug{position:absolute;left:0;right:0;top:100%;z-index:1000;background:#fff;border:1px solid var(--line);border-radius:6px;max-height:230px;overflow:auto;display:none;box-shadow:0 6px 18px #0002}
+.sug div{padding:7px 10px;cursor:pointer;font-size:14px}.sug div:hover{background:#eef5f6}.sug small{color:var(--mute)}
+.chk{display:flex;gap:8px;align-items:center;color:var(--ink);font-size:13.5px;margin-top:8px}.busy{opacity:.55;pointer-events:none}
+.hr{display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:4px 0;border-top:1px solid var(--line)}
+#multi .row{margin-top:2px}.stoprow{display:flex;gap:6px;align-items:center;margin-top:6px;font-size:13.5px}.stoprow span{flex:1}.stoprow button{padding:2px 8px}
+.wl-severe{color:#b3263e;font-weight:600;font-size:13px}.wl-warning{color:#8a5a00;font-weight:600;font-size:13px}.wl-info{color:#1a4f9c;font-size:13px}details{margin-top:6px}
+.nav{display:flex;gap:6px;flex-wrap:wrap}.nav a{padding:6px 12px;border-radius:16px;color:var(--ink);text-decoration:none;font-weight:600;font-size:13.5px;border:1px solid transparent}.nav a.on{background:var(--acc);color:#fff}.nav a:hover:not(.on){border-color:var(--line)}
+footer{font-size:12px;color:var(--mute)}
+@media(max-width:860px){body{height:auto}main{grid-template-columns:1fr;grid-template-rows:55vh auto}#map{order:-1}}
+</style></head><body>
+<header><h1>SmartPathPilot</h1><small>AI/ML route optimization for Bengaluru</small><nav class="nav"><a class="on" href="/">Route Planner</a><a href="/citypulse">CityPulse</a><a href="/gradient-descent-lab">Gradient Descent Lab</a></nav><div class="badges" id="badges"></div></header>
+<main><div id="side">
+<div class="box"><h2>Trip</h2>
+ <div class="row"><div><label for="srcq">From</label><div class="ac"><input type="text" id="srcq" autocomplete="off" placeholder="Search a place in Bengaluru"><div class="sug" id="srcs"></div></div></div><button id="swap" title="Swap">&#8646;</button></div>
+ <label for="dstq">To</label><div class="ac"><input type="text" id="dstq" autocomplete="off" placeholder="Search a place in Bengaluru"><div class="sug" id="dsts"></div></div>
+ <p class="hint">Type to search landmarks and junctions, or click the map: first click sets From, second sets To (snapped to the nearest road junction).</p></div>
+<div class="box"><h2>Conditions</h2>
+ <label>Departure time: <b id="hl"></b></label><input type="range" id="h" min="0" max="23" value="9">
+ <div class="row"><div><label>Day</label><div class="seg" id="day"><button data-v="weekday" class="on">Weekday</button><button data-v="weekend">Weekend</button></div></div>
+ <div><label>Weather</label><div class="seg" id="wx"><button data-v="dry" class="on">Dry</button><button data-v="rain">Rain</button></div></div></div><label class="chk"><input type="checkbox" id="ap"> Avoid poor roads</label><label class="chk"><input type="checkbox" id="aw"> Avoid waterlogging-prone roads</label><p class="hint" id="awnote"></p></div>
+<div class="box"><h2>Traffic data</h2><select id="eng"><option value="profile">Simulated time-of-day profile</option><option value="ml">ML prediction</option><option value="live">Live traffic (TomTom)</option></select>
+ <p class="hint" id="engnote"></p>
+ <label class="chk"><input type="checkbox" id="rc"> Use CityPulse road conditions</label>
+ <p class="hint" id="rcnote">Adds a cost penalty for <b>verified</b> road issues only. Unverified reports and predictions never change a route. Not a real-time hazard feed.</p>
+ <label>What matters most</label>
+ <div class="w"><span>Travel time</span><input type="range" id="wt" min="0" max="10" value="6"></div>
+ <div class="w"><span>Distance</span><input type="range" id="wd" min="0" max="10" value="2"></div>
+ <div class="w"><span>Road quality</span><input type="range" id="wr" min="0" max="10" value="2"></div></div>
+<div class="box" id="multi"><h2>Multi-stop trip</h2>
+ <p class="hint">Uses From, To, time and day above. Add mandatory stops, then plan.</p>
+ <div class="ac"><input type="text" id="stopq" autocomplete="off" placeholder="Add a stop (search a place)"><div class="sug" id="stopbox"></div></div>
+ <div id="stoplist"></div>
+ <div class="row"><div><label for="mmode">Stop order</label><select id="mmode"><option value="optimized">Optimized</option><option value="strict">As entered (strict)</option><option value="compare">Compare both</option></select></div>
+ <div><label for="mobj">Objective</label><select id="mobj"><option value="fastest">Fastest</option><option value="shortest">Shortest distance</option></select></div></div>
+ <div class="row"><div><label for="mrq">Road quality</label><select id="mrq"><option value="none">No preference</option><option value="balanced">Balanced</option><option value="better_roads">Better roads</option></select></div>
+ <div><label for="mtp">Traffic profile</label><select id="mtp"></select></div></div>
+ <p class="hint" id="mtpnote"></p>
+ <label class="chk"><input type="checkbox" id="mwx"> Check weather along the route</label>
+ <p class="hint">Real forecast from Open-Meteo for the departure time (the server needs internet). Weather is reported as warnings; it does not reroute.</p>
+ <button id="mgo" class="on" style="width:100%;margin-top:8px">Plan multi-stop trip</button>
+ <div id="mmsg" class="hint"></div><div id="mout"></div></div>
+<div class="box" id="res"><h2>Routes</h2><div id="msg" class="hint">Choose two places to see routes.</div><div id="cards"></div><div id="steps"></div>
+ <button id="bt" style="margin-top:10px;display:none">Find best time to leave</button><div id="best"></div></div>
+<div class="box"><h2 id="hoth">Slowest roads</h2><div id="hot" class="hint">Loading…</div></div>
+<footer>Traffic values are simulated or model predictions unless the badge says LIVE. Roads are OpenStreetMap when downloaded, otherwise a small demo network. Map tiles &copy; OpenStreetMap contributors.</footer>
+</div><div id="map"></div></main>
+<script src="/static/vendor/leaflet.js"></script>
+<script>
+const $=id=>document.getElementById(id),COL=['#2e9e6b','#d9a21a','#e0662b','#b3263e'];
+const st={src:null,dst:null,pick:0,sel:0,data:null,status:null,places:[],day:'weekday',wx:'dry'};
+const map=L.map('map').setView([12.9716,77.5946],11);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+const layer=L.layerGroup().addTo(map);
+const fh=h=>`${(h%12)||12}:00 ${h<12?'AM':'PM'}`;
+const fm=m=>{m=Math.round(m)%1440;const h=Math.floor(m/60);return `${(h%12)||12}:${String(m%60).padStart(2,'0')} ${h<12?'AM':'PM'}`};
+const dep=()=>$('eng').value=='live'?(new Date().getHours()*60+new Date().getMinutes()):+$('h').value*60;
+function msg(t,e){$('msg').textContent=t;$('msg').className=e?'err':'hint'}
+function debounce(f,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>f(...a),ms)}}
+const KIND={'live':['b-ok','Traffic: LIVE (TomTom, verified)'],'simulated-profile':['b-sim','Traffic: SIMULATED (time-of-day profile)'],'simulated-ml':['b-ml','Traffic: ML PREDICTION (trained on simulated data)'],'ml-live-history':['b-ml','Traffic: ML PREDICTION (trained on collected live readings)'],'simulated-fallback':['b-sim','Traffic: SIMULATED (fallback)']};
+function badges(){
+  const s=st.status,b=[];
+  if(s)b.push(s.graph_source=='openstreetmap'?['b-ok','Roads: OpenStreetMap']:['b-sim','Roads: DEMO network (21 junctions, simulated)']);
+  if(st.data){const k=KIND[st.data.traffic.kind];b.push(k)}
+  $('badges').innerHTML=b.map(x=>`<span class="badge ${x[0]}">${x[1]}</span>`).join('')}
+function engNote(){const e=$('eng').value,s=st.status||{};
+  $('engnote').textContent=e=='live'?(s.tomtom_key_set?'Real-time readings from TomTom. They describe right now, so the time controls are disabled.':'No TOMTOM_KEY set, so this falls back to simulated traffic (clearly labelled).'):
+  e=='ml'?(s.ml_available?(s.graph_source=='demo'?'Model trained on the simulated dataset. A prediction, not measured traffic.':'Model trained on readings you collected. A prediction.'):'Not trained yet: falls back to the simulated profile.'):
+  'Hand-written hourly pattern with assumed values. Not measured traffic.';
+  ['h','day','wx'].forEach(i=>{const el=$(i);if(el.tagName=='INPUT')el.disabled=e=='live'});}
+function setPlace(k,p){st[k]=p;$(k+'q').value=p.custom?`Map point (${p.lat.toFixed(3)}, ${p.lon.toFixed(3)})`:p.name}
+async function suggest(k){
+  const box=$(k+'s'),v=$(k+'q').value.trim(),q=st[k]&&v==st[k].name?'':v;
+  try{const j=await (await fetch('/api/osm/search?q='+encodeURIComponent(q))).json();
+    box.innerHTML=j.results.length?j.results.map((p,i)=>`<div data-i="${i}">${esc(p.name)} <small>${esc(p.area||(p.kind=='junction'?'junction':''))}${p.kind=='osm-search'?' · OpenStreetMap search':''}</small></div>`).join(''):'<div><small>No matches</small></div>';
+    box.querySelectorAll('div[data-i]').forEach(d=>d.onmousedown=e=>{e.preventDefault();setPlace(k,j.results[+d.dataset.i]);box.style.display='none';go()});
+    if(j.note)box.insertAdjacentHTML('beforeend',`<div><small>${j.note}</small></div>`);box.style.display='block'}
+  catch(e){box.innerHTML='<div><small>Search unavailable</small></div>';box.style.display='block'}}
+['src','dst'].forEach(k=>{const inp=$(k+'q'),box=$(k+'s'),sd=debounce(()=>suggest(k),250);inp.oninput=sd;inp.onfocus=()=>{inp.select();suggest(k)};inp.onblur=()=>setTimeout(()=>box.style.display='none',150)});
+async function go(){
+  if(!st.src||!st.dst)return;
+  if(st.src.lat==st.dst.lat&&st.src.lon==st.dst.lon){msg('Choose two different places.',1);return}
+  const q=new URLSearchParams({src_lat:st.src.lat,src_lon:st.src.lon,dst_lat:st.dst.lat,dst_lon:st.dst.lon,hour:$('h').value,day:st.day,weather:st.wx,engine:$('eng').value,w_time:$('wt').value,w_dist:$('wd').value,w_road:$('wr').value,avoid_poor:$('ap').checked,avoid_waterlogged:$('aw').checked,use_road_conditions:$('rc').checked});
+  msg('Finding routes…');$('res').classList.add('busy');
+  try{const r=await fetch('/api/osm/route?'+q),j=await r.json();if(!r.ok)throw new Error(j.detail||r.statusText);st.data=j;st.sel=0;st.q=q;$('best').innerHTML='';render()}
+  catch(e){st.data=null;$('cards').innerHTML='';$('steps').innerHTML='';layer.clearLayers();$('bt').style.display='none';msg(e.message,1);badges()}finally{$('res').classList.remove('busy')}}
+const rcPills=r=>{const c=r.road_conditions;if(!c)return'';const v=c.verified_issues.length,u=c.unverified_nearby.length;
+  return (v?`<span class="pill" style="border-color:#e0662b">${v} verified road issue${v>1?'s':''} on route</span>`:'<span class="pill">No verified road issues</span>')+(u?`<span class="pill">${u} unverified report${u>1?'s':''} (info only)</span>`:'')};
+function rcInfo(d){const s=d.road_conditions;if(!s||!s.enabled)return;const r=d.routes[st.sel],c=r.road_conditions;
+  let h=`<div class="hint" style="margin-top:8px"><b>Road conditions (CityPulse)</b>: ${s.available?esc(s.data_mode):'unavailable'}${s.data_mode.includes('simulated')?' <span class="badge b-sim">SIMULATED</span>':''}. ${s.available?`${s.verified_issues_used} verified issue(s) applied as a cost penalty; the displayed time is unchanged.`:esc(s.error||'')} ${esc((s.notes||[]).slice(-1)[0]||'')}</div>`;
+  if(c)h+=c.verified_issues.concat(c.unverified_nearby).map(i=>`<div class="hint">${i.status=='verified'?'&#9679;':'&#9675;'} ${esc(i.issue_type.replace('_',' '))} on ${esc(i.road)}, severity ${i.severity??'n/a'}, ${esc(i.status)}${i.simulated?' (simulated)':''}${i.status=='verified'?` - cost x${i.cost_factor}`:' - informational only'}</div>`).join('');
+  $('cards').insertAdjacentHTML('beforeend',h)}
+function render(){
+  const d=st.data,R=d.routes;badges();
+  msg(d.traffic.note||'');
+  $('cards').innerHTML=R.map((r,i)=>`<div class="card ${i==st.sel?'sel':''}" data-i="${i}"><h3><span>${i?'Alternative '+i:'Recommended'}</span><span>${r.time_min} min</span></h3>
+   <div class="hint">Leave ${fm(dep())} &rarr; arrive <b>${fm(dep()+r.time_min)}</b> · ${r.distance_km} km${r.is_shortest_distance?' · shortest distance':''}</div>
+   <div class="pills"><span class="pill"><i style="background:${COL[['Free','Moderate','Heavy','Severe'].indexOf(r.traffic_level)]}"></i>${r.traffic_level} traffic (${r.avg_slowdown}x)</span><span class="pill">${r.road_condition} roads</span>${rcPills(r)}</div></div>`).join('')
+   +(d.time_saved_vs_shortest_min>0?`<div class="win">${d.time_saved_vs_shortest_min} min faster than the shortest-distance route.</div>`:'<div class="win">The shortest-distance route is also the best choice here.</div>');
+  document.querySelectorAll('.card').forEach(c=>c.onclick=()=>{st.sel=+c.dataset.i;render()});
+  rcInfo(d);const s=R[st.sel].steps;$('steps').innerHTML='<h2 style="margin:12px 0 4px">Directions</h2><ol class="steps">'+s.map(x=>`<li>${x.road} <span>· ${x.distance_km} km · ${x.time_min} min</span></li>`).join('')+'</ol>';
+  $('bt').style.display=$('eng').value=='live'?'none':'block';draw();loadHot()}
+function draw(){
+  layer.clearLayers();const R=st.data.routes,all=[];
+  R.forEach((r,i)=>{if(i!=st.sel)r.segments.forEach(s=>{all.push(...s.geometry);L.polyline(s.geometry,{color:'#7a8a90',weight:4,opacity:.6,dashArray:'4 8'}).addTo(layer)})});
+  R[st.sel].segments.forEach(s=>{all.push(...s.geometry);L.polyline(s.geometry,{color:'#fff',weight:11,opacity:.9}).addTo(layer);L.polyline(s.geometry,{color:COL[s.level],weight:7,opacity:1}).addTo(layer)});
+  [['src','From'],['dst','To']].forEach(([k,t],i)=>{const p=st.data.snapped[k];L.circleMarker([p.lat,p.lon],{radius:9,color:'#fff',weight:3,fillColor:i?'#b3263e':'#0b6e7d',fillOpacity:1}).bindTooltip(`${t}${p.name?': '+p.name:''}${p.distance_km>0.3?` (snapped ${p.distance_km} km)`:''}`).addTo(layer)});
+  if(all.length)map.fitBounds(L.latLngBounds(all),{padding:[30,30]})}
+async function best(){
+  $('best').innerHTML='<p class="hint">Comparing all 24 departure hours…</p>';
+  try{const r=await fetch('/api/osm/best-time?'+st.q),j=await r.json();if(!r.ok)throw new Error(j.detail);
+    const mx=Math.max(...j.times_min),h=+$('h').value;
+    $('best').innerHTML=`<p class="win">${j.saving_min>=1?`Leaving at ${fm(j.best_hour*60)} would save about ${j.saving_min} min compared with ${fm(h*60)}.`:'Your chosen time is already about the best.'}</p><div class="bars">${j.times_min.map((t,i)=>`<div class="${i==j.best_hour?'best':i==h?'cur':''}" style="height:${t/mx*100}%" title="${fm(i*60)}: ${t} min"></div>`).join('')}</div><p class="hint">Green = best hour, teal = your choice. ${KIND[j.traffic_kind][1].replace('Traffic: ','')}.</p>`}
+  catch(e){$('best').innerHTML=`<p class="err">${e.message}</p>`}}
+async function loadHot(){
+  const e=$('eng').value,q=new URLSearchParams({hour:$('h').value,day:st.day,weather:st.wx,engine:e});
+  try{const j=await (await fetch('/api/osm/hotspots?'+q)).json(),live=j.traffic.kind=='live';
+    $('hoth').textContent=live?'Slowest roads right now (live)':'Slowest roads at '+(e=='live'?'this hour':fh(+$('h').value))+' ('+(j.traffic.kind=='simulated-ml'||j.traffic.kind=='ml-live-history'?'predicted':'simulated')+')';
+    $('hot').className='';$('hot').innerHTML=j.roads.map(r=>`<div class="hr"><span>${r.road}</span><b>${r.slowdown_x}x · ${r.level}</b></div>`).join('')}
+  catch(e){$('hot').textContent=''}}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+st.stops=[];st.msel=null;st.multi=null;st.profiles=[];
+function mmsg(t,e){$('mmsg').textContent=t;$('mmsg').className=e?'err':'hint'}
+function renderStops(){
+  $('stoplist').innerHTML=st.stops.map((s,i)=>`<div class="stoprow"><span>${i+1}. ${esc(s.name)}</span><button data-a="up" data-i="${i}" title="Move up">&uarr;</button><button data-a="down" data-i="${i}" title="Move down">&darr;</button><button data-a="del" data-i="${i}" title="Remove">&#10005;</button></div>`).join('')||'<p class="hint">No stops yet.</p>';
+  $('stoplist').querySelectorAll('button').forEach(b=>b.onclick=()=>{const i=+b.dataset.i,a=b.dataset.a;
+    if(a=='del')st.stops.splice(i,1);else{const j=a=='up'?i-1:i+1;if(j>=0&&j<st.stops.length)[st.stops[i],st.stops[j]]=[st.stops[j],st.stops[i]]}renderStops()})}
+async function suggestStop(){
+  const box=$('stopbox'),q=$('stopq').value.trim();
+  try{const j=await (await fetch('/api/osm/search?q='+encodeURIComponent(q))).json();
+    box.innerHTML=j.results.length?j.results.map((p,i)=>`<div data-i="${i}">${esc(p.name)} <small>${esc(p.area||(p.kind=='junction'?'junction':''))}</small></div>`).join(''):'<div><small>No matches</small></div>';
+    box.querySelectorAll('div[data-i]').forEach(d=>d.onmousedown=e=>{e.preventDefault();st.stops.push(j.results[+d.dataset.i]);$('stopq').value='';box.style.display='none';renderStops()});box.style.display='block'}
+  catch(e){box.innerHTML='<div><small>Search unavailable</small></div>';box.style.display='block'}}
+(()=>{const i=$('stopq'),sd=debounce(suggestStop,250);i.oninput=sd;i.onfocus=suggestStop;i.onblur=()=>setTimeout(()=>$('stopbox').style.display='none',150)})();
+async function loadProfiles(){
+  try{const j=await (await fetch('/api/traffic/profiles')).json();st.profiles=j.profiles;
+    $('mtp').innerHTML=j.profiles.map(p=>`<option value="${p.profile}" ${p.available?'':'disabled'}>${({free_flow:'Free flow',typical:'Typical (simulated)',peak:'Peak (simulated)',live:'Live (TomTom)'})[p.profile]}${p.available?'':' - not configured'}</option>`).join('');
+    $('mtp').value='typical';profNote()}catch(e){$('mtpnote').textContent='Traffic profiles unavailable.'}}
+function profNote(){const p=st.profiles.find(x=>x.profile==$('mtp').value);$('mtpnote').textContent=p?`${p.verified_live?'LIVE':'NOT LIVE'}: ${p.source}. ${p.limitations}`:''}
+$('mtp').onchange=profNote;
+const fmtErr=j=>typeof j.detail==='string'?j.detail:((j.detail||[]).map(d=>(d.loc||[]).slice(1).join('.')+': '+d.msg).join('; ')||'Request failed');
+const WL={severe:'wl-severe',warning:'wl-warning',info:'wl-info'};
+function weatherHtml(w,r){
+  if(!w)return'';
+  if(!w.available)return`<div class="hint err">Weather unavailable: ${esc(w.reason)}</div>`;
+  const s=w.summary;
+  return `<div class="hint"><b>Weather (${esc(w.provider)})</b>: max rain ${s.max_precipitation_mm_h} mm/h, wind up to ${s.max_wind_kmh} km/h, min visibility ${s.min_visibility_m==null?'n/a':s.min_visibility_m+' m'}, est. rain exposure ${s.estimated_rain_exposure_mm} mm.</div>`
+   +(w.warnings.map(x=>`<div class="${WL[x.level]||''}">&#9888; ${esc(x.text)}</div>`).join('')||'<div class="hint">No weather warnings for this route and time.</div>')
+   +`<details><summary class="hint">Weather sample points (${w.samples.length})</summary>${w.samples.map(x=>`<div class="hint">+${x.offset_min} min · ${x.type=='forecast'?'forecast':'current (model estimate)'} · ${esc(x.summary)} · ${x.precipitation_mm_h??'?'} mm/h · ${x.wind_kmh??'?'} km/h</div>`).join('')}</details>`
+   +`<div class="hint">Rain-adjusted time (assumed ${w.time_adjustment.factor}x factor): ${(r.time_min*w.time_adjustment.factor).toFixed(0)} min. ${w.alerts&&!w.alerts.available?'Official alerts: not configured.':''}</div>`}
+function multiCard(key,r,sel){
+  const t={optimized:'Optimized order',strict:'Strict order (as entered)'}[key],q=r.road_quality,o=r.optimization;
+  return `<div class="card ${sel?'sel':''}" data-k="${key}"><h3><span>${t}</span><span>${r.time_min} min</span></h3>
+  <div class="hint">${r.distance_km} km · ${r.traffic_level} traffic (${r.avg_slowdown}x)</div><div class="hint"><b>${r.order.map(x=>esc(x.label)).join(' &rarr; ')}</b></div>
+  <div class="pills"><span class="pill">${o.exact?'Exact order search':'Heuristic order search'}</span>${o.improvement_vs_entered_order_pct>0?`<span class="pill">${o.improvement_vs_entered_order_pct}% better than entered order</span>`:''}<span class="pill">Quality known on ${Math.round(q.known_share*100)}% of route</span><span class="pill">Quality penalty ${q.penalty.value} ${q.penalty.unit}</span></div>
+  <details><summary class="hint">Legs and road-quality source</summary>${r.legs.map(l=>`<div class="hint">${esc(l.from)} &rarr; ${esc(l.to)}: ${l.distance_km} km, ${l.time_min} min</div>`).join('')}<div class="hint">${esc(q.note)}</div></details>${weatherHtml(r.weather,r)}</div>`}
+function drawMulti(){
+  layer.clearLayers();const j=st.multi,all=[];
+  Object.entries(j.results).forEach(([k,r])=>{if(k!=st.msel)r.segments.forEach(s=>{all.push(...s.geometry);L.polyline(s.geometry,{color:'#7a8a90',weight:4,opacity:.6,dashArray:'4 8'}).addTo(layer)})});
+  const r=j.results[st.msel];r.segments.forEach(s=>{all.push(...s.geometry);L.polyline(s.geometry,{color:'#fff',weight:11,opacity:.9}).addTo(layer);L.polyline(s.geometry,{color:COL[s.level],weight:7,opacity:1}).addTo(layer)});
+  r.order.forEach((x,i)=>L.circleMarker([x.snapped.lat,x.snapped.lon],{radius:10,color:'#fff',weight:3,fillColor:x.role=='source'?'#0b6e7d':x.role=='destination'?'#b3263e':'#d9a21a',fillOpacity:1}).bindTooltip(`${i}. ${x.label}`).addTo(layer));
+  if(all.length)map.fitBounds(L.latLngBounds(all),{padding:[30,30]})}
+function renderMulti(j){
+  st.multi=j;if(!st.msel||!j.results[st.msel])st.msel=j.results.optimized?'optimized':'strict';
+  const t=j.traffic;let h=`<div style="margin-top:8px"><span class="badge ${t.verified_live?'b-ok':'b-sim'}">Traffic: ${t.verified_live?'LIVE':'NOT LIVE'} · ${esc(t.profile.replace('_',' '))}</span></div><div class="hint">${esc(t.source)}. ${esc(t.limitations)}</div>`;
+  h+=j.warnings.map(w=>`<div class="wl-warning">&#9888; ${esc(w)}</div>`).join('');
+  h+=Object.entries(j.results).map(([k,r])=>multiCard(k,r,k==st.msel)).join('');
+  if(j.comparison){const c=j.comparison;h+=`<div class="win">${c.same_order?'The entered order is already optimal.':`Optimized order saves ${c.time_saved_min} min and ${c.distance_saved_km} km vs the entered order.`}${c.weather?` Lower estimated rain exposure: ${c.weather.lower_exposure}.`:''}</div>`}
+  h+=`<details><summary class="hint">Notes and assumptions</summary>${j.notes.map(n=>`<div class="hint">${esc(n)}</div>`).join('')}</details>`;
+  $('mout').innerHTML=h;$('mout').querySelectorAll('.card').forEach(c=>c.onclick=()=>{st.msel=c.dataset.k;renderMulti(j)});drawMulti()}
+async function planMulti(){
+  if(!st.src||!st.dst){mmsg('Choose From and To first.',1);return}
+  const body={source:{lat:st.src.lat,lon:st.src.lon,name:st.src.name||'Start'},destination:{lat:st.dst.lat,lon:st.dst.lon,name:st.dst.name||'End'},stops:st.stops.map(s=>({lat:s.lat,lon:s.lon,name:s.name})),
+    mode:$('mmode').value,objective:$('mobj').value,road_preference:$('mrq').value,traffic_profile:$('mtp').value,hour:+$('h').value,day:st.day,weather_assessment:$('mwx').checked};
+  mmsg('Planning…');$('multi').classList.add('busy');
+  try{const r=await fetch('/api/osm/route/multi',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),j=await r.json();
+    if(!r.ok)throw new Error(fmtErr(j));mmsg('');st.msel=null;renderMulti(j)}
+  catch(e){mmsg(e.message,1);$('mout').innerHTML=''}finally{$('multi').classList.remove('busy')}}
+$('mgo').onclick=planMulti;
+const goD=debounce(go,250);
+map.on('click',e=>{setPlace(st.pick?'dst':'src',{lat:e.latlng.lat,lon:e.latlng.lng,custom:true});st.pick^=1;go()});
+$('swap').onclick=()=>{const a=st.src,b=st.dst;setPlace('src',b);setPlace('dst',a);go()};
+['ap','aw','rc'].forEach(i=>$(i).onchange=go);
+[['day','day'],['wx','wx']].forEach(([id,key])=>$(id).querySelectorAll('button').forEach(b=>b.onclick=()=>{$(id).querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');st[key]=b.dataset.v;go()}));
+$('h').oninput=()=>{$('hl').textContent=fh(+$('h').value);goD()};$('hl').textContent=fh(9);
+['wt','wd','wr'].forEach(i=>$(i).oninput=goD);$('eng').onchange=()=>{engNote();go()};$('bt').onclick=best;
+(async()=>{
+  try{st.status=await (await fetch('/api/osm/status')).json();st.places=await (await fetch('/api/osm/places')).json()}
+  catch(e){msg('Cannot reach the backend. Start it with: python -m uvicorn app:app --reload',1);return}
+  $('aw').disabled=!st.status.waterlogging_filter;$('awnote').textContent=st.status.waterlogging_filter?'':'Waterlogging data exists only for the demo network.';
+  setPlace('src',st.places.find(p=>p.name=='Majestic')||st.places[0]);setPlace('dst',st.places.find(p=>p.name=='Whitefield')||st.places[1]);
+  engNote();badges();loadProfiles();renderStops();go()})();
+</script></body></html>

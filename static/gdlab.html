@@ -1,0 +1,70 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gradient Descent Lab – SmartPathPilot</title><link rel="stylesheet" href="/static/shared.css">
+<style>
+.grid{display:grid;grid-template-columns:320px 1fr;gap:12px;align-items:start}canvas{width:100%;height:320px;display:block;background:#fff;border-radius:8px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:10px}.tile{border:1px solid var(--line);border-radius:8px;padding:8px 10px}.tile b{display:block;font-size:19px}.tile span{font-size:12px;color:var(--mute)}
+table{border-collapse:collapse;width:100%;font-size:13px;margin-top:8px}th,td{border-bottom:1px solid var(--line);padding:5px 8px;text-align:right}th:first-child,td:first-child{text-align:left}th{color:var(--mute);font-weight:600}
+.eq{font-family:Cambria,"Cambria Math","Times New Roman",serif;font-size:17px;background:#f6f9f9;border-left:3px solid var(--acc);padding:8px 12px;margin:8px 0;overflow-x:auto;white-space:nowrap}
+.presets{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.presets button{padding:4px 8px;font-size:12.5px}.chk{display:flex;gap:6px;align-items:center;color:var(--ink)}.chk input{width:auto}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+</style></head><body>
+<header><h1>SmartPathPilot</h1><nav class="nav"><a href="/">Route Planner</a><a href="/citypulse">CityPulse</a><a class="on" href="/gradient-descent-lab">Gradient Descent Lab</a></nav><div class="badges"><span class="badge b-sim">SYNTHETIC data</span><span class="badge b-ml">CIE-3 educational experiment</span></div></header>
+<div class="wrap">
+<div class="banner">An educational experiment for the Calculus CIE-3 assignment. It is <b>independent</b> of CityPulse and of the GradientBoostingRegressor used by the route planner. Gradient descent is implemented explicitly in NumPy (no prebuilt optimizer), on <b>synthetic</b> travel-time data generated from a known rule plus noise, not on measured travel times.</div>
+<div class="grid"><div class="box"><h2>Controls</h2>
+ <label for="alpha">Learning rate α</label><input id="alpha" type="number" step="any" value="0.1" min="0.0001" max="5">
+ <div class="presets"><button data-a="0.001">Too small (0.001)</button><button data-a="0.1">Good (0.1)</button><button data-a="1.0">Too large (1.0)</button></div>
+ <label for="iters">Iterations</label><input id="iters" type="number" value="200" min="1" max="5000">
+ <label for="n">Samples</label><input id="n" type="number" value="200" min="30" max="2000">
+ <label for="noise">Noise (std dev, minutes)</label><input id="noise" type="number" step="any" value="2" min="0" max="20">
+ <label for="seed">Random seed</label><input id="seed" type="number" value="42" min="0">
+ <button class="primary" id="run" style="width:100%;margin-top:12px">Run Optimization</button><div id="msg" class="hint"></div></div>
+<div><div class="box"><h2>Convergence</h2><canvas id="cv"></canvas><label class="chk" style="margin-top:6px"><input type="checkbox" id="log"> Log scale (loss axis)</label><div id="tiles" class="tiles"></div><div id="warn"></div></div>
+<div class="box"><h2>Learned parameters</h2><div id="coefs" class="hint">Run the optimization to see results.</div></div>
+<div class="box"><h2>Evaluation and verification</h2><div id="evals" class="hint">Run the optimization to see results.</div></div></div></div>
+<div class="box"><h2>Mathematics</h2>
+ <p>Model for travel time (minutes) from distance, traffic slowdown and road roughness:</p><div class="eq">ŷᵢ = wᵀxᵢ + b</div>
+ <p>Mean Squared Error objective over n samples:</p><div class="eq">J(w, b) = (1/n) Σᵢ (ŷᵢ − yᵢ)²</div>
+ <p>Gradients (from the chain rule: d/dw (ŷ−y)² = 2(ŷ−y)·x):</p>
+ <div class="eq">∇<sub>w</sub>J = (2/n) Xᵀ(Xw + b·1 − y)</div><div class="eq">∂J/∂b = (2/n) Σᵢ (ŷᵢ − yᵢ)</div>
+ <p>Update rules with learning rate α (move against the gradient, the direction of steepest decrease):</p>
+ <div class="eq">w<sub>t+1</sub> = w<sub>t</sub> − α ∇<sub>w</sub>J</div><div class="eq">b<sub>t+1</sub> = b<sub>t</sub> − α ∂J/∂b</div>
+ <p class="hint">J is a convex quadratic, so it has one minimum and gradient descent converges to it if α &lt; 2/λ<sub>max</sub>(H), where H = (2/n)AᵀA is the Hessian and A = [X, 1]. Features are standardised before training so one α suits all of them. Too small an α converges slowly; too large an α diverges. The run reports the stability limit for the chosen data.</p></div>
+<div class="box"><h2>Worked example for the viva (computed by the same code)</h2><div id="worked" class="hint">Loading…</div></div></div>
+<script>
+const $=id=>document.getElementById(id),f=(x,d=4)=>x==null?'n/a':Number(x).toFixed(d),fe=x=>Math.abs(x)>=1e5||(Math.abs(x)<1e-3&&x!==0)?Number(x).toExponential(2):f(x);
+let last=null;
+function chart(h,log){
+  const c=$('cv'),dpr=window.devicePixelRatio||1,W=c.width=c.clientWidth*dpr,H=c.height=320*dpr,ctx=c.getContext('2d');ctx.scale(dpr,dpr);const w=W/dpr,hh=H/dpr,m={l:62,r:14,t:14,b:34};
+  ctx.clearRect(0,0,w,hh);ctx.font='11px system-ui';ctx.fillStyle='#5b6b72';ctx.strokeStyle='#d6dedc';
+  const xs=h.iteration,ys=h.loss.map(v=>log?Math.log10(Math.max(v,1e-12)):v),x0=0,x1=Math.max(1,xs[xs.length-1]);let y0=Math.min(...ys),y1=Math.max(...ys);if(y0===y1){y0-=1;y1+=1}
+  const X=v=>m.l+(v-x0)/(x1-x0)*(w-m.l-m.r),Y=v=>hh-m.b-(v-y0)/(y1-y0)*(hh-m.t-m.b);
+  for(let i=0;i<=4;i++){const yv=y0+(y1-y0)*i/4,y=Y(yv);ctx.beginPath();ctx.moveTo(m.l,y);ctx.lineTo(w-m.r,y);ctx.stroke();ctx.textAlign='right';ctx.fillText(log?'1e'+yv.toFixed(1):fe(yv),m.l-6,y+4)}
+  for(let i=0;i<=4;i++){const xv=x0+(x1-x0)*i/4;ctx.textAlign='center';ctx.fillText(Math.round(xv),X(xv),hh-m.b+16)}
+  ctx.fillText('iteration',w/2,hh-4);ctx.save();ctx.translate(12,hh/2);ctx.rotate(-Math.PI/2);ctx.fillText(log?'loss J (log10)':'loss J (MSE)',0,0);ctx.restore();
+  ctx.strokeStyle='#0b6e7d';ctx.lineWidth=2;ctx.beginPath();xs.forEach((v,i)=>i?ctx.lineTo(X(v),Y(ys[i])):ctx.moveTo(X(v),Y(ys[i])));ctx.stroke();
+  [[0,'#b3263e'],[xs.length-1,'#1c7a4f']].forEach(([i,col])=>{ctx.fillStyle=col;ctx.beginPath();ctx.arc(X(xs[i]),Y(ys[i]),4,0,7);ctx.fill()})}
+function render(r){
+  last=r;chart(r.history,$('log').checked);
+  $('tiles').innerHTML=[['Initial loss',fe(r.initial_loss)],['Final loss',fe(r.final_loss)],['Reduction',f(r.loss_reduction_pct,2)+' %'],['Iterations run',r.iterations_run],['Final gradient norm',fe(r.final_gradient_norm)],['Stability limit α',f(r.stability.max_stable_alpha,3)]].map(t=>`<div class="tile"><span>${t[0]}</span><b>${t[1]}</b></div>`).join('');
+  $('warn').innerHTML=(r.diverged?`<p class="err">Diverged: the loss exploded, so the run stopped early and kept the last finite parameters. α = ${r.parameters.alpha} is above the stability limit (${f(r.stability.max_stable_alpha,3)}).</p>`:'')+(!r.diverged&&r.parameters.alpha>=r.stability.max_stable_alpha?'<p class="err">α is at or above the stability limit.</p>':'')+(r.final_gradient_norm>1e-3&&!r.diverged?'<p class="hint">Not fully converged yet: try more iterations or a larger (stable) α.</p>':'');
+  const c=r.coefficients,rows=c.features.map((n,i)=>`<tr><td>${n}</td><td>${f(c.original_units.w[i])}</td><td>${f(c.true.w[i])}</td><td>${f(c.closed_form_reference.w[i])}</td><td>${f(c.standardized.w[i])}</td></tr>`).join('');
+  $('coefs').innerHTML=`<table><tr><th>Coefficient</th><th>Learned (original units)</th><th>True (generator)</th><th>Closed-form reference</th><th>Learned (standardised)</th></tr>${rows}<tr><td>bias b</td><td>${f(c.original_units.b)}</td><td>${f(c.true.b)}</td><td>${f(c.closed_form_reference.b)}</td><td>${f(c.standardized.b)}</td></tr></table><p class="hint">${r.dataset.label} Train ${r.dataset.n_train}, test ${r.dataset.n_test}. The closed-form column is a check only; it is not used for training.</p>`;
+  const m=r.metrics,v=r.verification;
+  $('evals').innerHTML=`<table><tr><th>Set</th><th>MSE</th><th>RMSE (min)</th><th>MAE (min)</th><th>R²</th></tr>${['train','test'].map(k=>`<tr><td>${k} (${m[k].n})</td><td>${f(m[k].mse)}</td><td>${f(m[k].rmse)}</td><td>${f(m[k].mae)}</td><td>${f(m[k].r2)}</td></tr>`).join('')}</table>
+   <p class="hint">Gradient check (analytic vs finite-difference): max relative error ${fe(v.gradient_check_max_relative_error)}. Loss gap to the closed-form optimum: ${fe(v.loss_gap_to_closed_form)}. Largest coefficient gap: ${fe(v.max_abs_weight_gap_to_closed_form)}.</p>`}
+async function run(){
+  const body={alpha:+$('alpha').value,iterations:+$('iters').value,n_samples:+$('n').value,noise:+$('noise').value,seed:+$('seed').value};
+  $('run').disabled=true;$('msg').className='hint';$('msg').textContent='Running…';
+  try{const r=await fetch('/api/gdlab/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),j=await r.json();
+    if(!r.ok)throw new Error(Array.isArray(j.detail)?j.detail.map(d=>(d.loc||[]).slice(1).join('.')+': '+d.msg).join('; '):j.detail);$('msg').textContent='';render(j)}
+  catch(e){$('msg').className='err hint';$('msg').textContent=e.message}finally{$('run').disabled=false}}
+$('run').onclick=run;$('log').onchange=()=>last&&chart(last.history,$('log').checked);document.querySelectorAll('.presets button').forEach(b=>b.onclick=()=>{$('alpha').value=b.dataset.a;run()});window.onresize=()=>last&&chart(last.history,$('log').checked);
+fetch('/api/gdlab/worked-example').then(r=>r.json()).then(w=>{
+  $('worked').innerHTML=`<p>Two points x = [${w.x}], y = [${w.y}], model ŷ = w·x + b, start w = 0, b = 0, α = ${w.alpha}, n = 2.</p>`+w.steps.map(s=>`<table><tr><th>Step ${s.step}</th><th>value</th></tr>
+   <tr><td>ŷ = w·x + b</td><td>[${s.y_hat.map(v=>f(v,3))}]</td></tr><tr><td>residuals ŷ − y</td><td>[${s.residuals.map(v=>f(v,3))}]</td></tr><tr><td>J = (1/2)Σ residual²</td><td>${f(s.loss,4)}</td></tr>
+   <tr><td>∂J/∂w = (2/n)Σ xᵢ·residualᵢ</td><td>${f(s.grad_w,4)}</td></tr><tr><td>∂J/∂b = (2/n)Σ residualᵢ</td><td>${f(s.grad_b,4)}</td></tr>
+   <tr><td>w ← w − α·∂J/∂w</td><td>${f(s.w,4)} − ${w.alpha}×(${f(s.grad_w,4)}) = <b>${f(s.w_new,4)}</b></td></tr><tr><td>b ← b − α·∂J/∂b</td><td>${f(s.b,4)} − ${w.alpha}×(${f(s.grad_b,4)}) = <b>${f(s.b_new,4)}</b></td></tr>
+   <tr><td>loss after the step</td><td>${f(s.loss_after,4)}</td></tr></table>`).join('')+'<p class="hint">The loss falls each step while α is small enough. The same functions drive the lab above, and automated tests check these numbers.</p>'}).catch(()=>$('worked').textContent='Could not load the worked example.');
+run();
+</script></body></html>

@@ -1,0 +1,12 @@
+:root{--bg:#eef2f3;--panel:#fff;--ink:#12232b;--mute:#5b6b72;--line:#d6dedc;--acc:#0b6e7d;--free:#2e9e6b;--mod:#d9a21a;--heavy:#e0662b;--sev:#b3263e;--risk:#7b3fc4}
+*{box-sizing:border-box}body{margin:0;font:14.5px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+header{background:var(--panel);border-bottom:1px solid var(--line);padding:10px 16px;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
+header h1{font-size:18px;margin:0}header small{color:var(--mute)}.badges{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.nav{display:flex;gap:6px;flex-wrap:wrap}.nav a{padding:6px 12px;border-radius:16px;color:var(--ink);text-decoration:none;font-weight:600;font-size:13.5px;border:1px solid transparent}.nav a.on{background:var(--acc);color:#fff}.nav a:hover:not(.on){border-color:var(--line)}
+.badge{font-size:12px;font-weight:600;padding:3px 9px;border-radius:12px;border:1px solid}.b-ok{color:#1c7a4f;background:#e6f5ee;border-color:#a9dcc3}.b-sim{color:#8a5a00;background:#fff4dc;border-color:#f0d08a}.b-ml{color:#1a4f9c;background:#e8f0fc;border-color:#a9c3ee}.b-risk{color:#5a2a9c;background:#f1e8fc;border-color:#cdb4ee}
+.wrap{max-width:1280px;margin:0 auto;padding:14px}.box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}.box h2{font-size:13px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em;color:var(--mute)}
+label{display:block;font-size:13px;color:var(--mute);margin:8px 0 3px}select,input,textarea{width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:#fff;font:inherit;color:var(--ink)}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:6px;padding:8px 12px;color:var(--ink)}button.on,button.primary{background:var(--acc);border-color:var(--acc);color:#fff}button:disabled{opacity:.5;cursor:not-allowed}
+.hint{font-size:12.5px;color:var(--mute);margin:6px 0 0}.err{color:var(--sev);font-weight:600}.ok{color:#1c7a4f;font-weight:600}.banner{background:#fff4dc;border:1px solid #f0d08a;color:#6b4700;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:13.5px}
+.pill{display:inline-block;font-size:12px;padding:2px 8px;border-radius:10px;background:#eef2f3;border:1px solid var(--line);margin:2px 4px 0 0}
+@media(max-width:860px){.nav{order:3;width:100%}.badges{margin-left:0}}

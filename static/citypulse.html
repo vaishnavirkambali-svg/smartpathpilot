@@ -1,0 +1,123 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CityPulse – SmartPathPilot</title><link rel="stylesheet" href="/static/vendor/leaflet.css"><link rel="stylesheet" href="/static/shared.css">
+<style>
+.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:12px}.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}.stat b{font-size:26px;display:block;line-height:1.1}.stat span{font-size:12.5px;color:var(--mute)}.stat .t{font-weight:600;color:var(--ink);font-size:13px}
+.grid{display:grid;grid-template-columns:1fr 420px;gap:12px;align-items:start}#map{height:560px;border-radius:8px;background:#dfe7e6}.tools{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:8px;font-size:13px}.tools label{margin:0;display:flex;gap:5px;align-items:center;color:var(--ink)}.tools input{width:auto}.tools select{width:auto;padding:4px 6px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12.5px;color:var(--mute);margin-top:8px}.legend i{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:middle;margin-right:4px}
+.row{display:flex;gap:8px}.row>*{flex:1}.item{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:8px;cursor:pointer}.item:hover{border-color:var(--acc)}.item h4{margin:0;font-size:14px;display:flex;justify-content:space-between;gap:8px}.bar{height:6px;border-radius:3px;background:#e3e9e8;margin-top:6px;overflow:hidden}.bar div{height:100%;background:var(--acc)}
+.factor{display:grid;grid-template-columns:90px 1fr 44px;gap:6px;font-size:12.5px;margin-top:4px;align-items:center}.factor .bar{margin:0}.kv{display:grid;grid-template-columns:120px 1fr;gap:3px 10px;font-size:13.5px}.kv dt{color:var(--mute)}.kv dd{margin:0}
+@media(max-width:1000px){.grid{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,1fr)}#map{height:420px}}
+</style></head><body>
+<header><h1>SmartPathPilot</h1><nav class="nav"><a href="/">Route Planner</a><a class="on" href="/citypulse">CityPulse</a><a href="/gradient-descent-lab">Gradient Descent Lab</a></nav><div class="badges" id="badges"></div></header>
+<div class="wrap"><div id="banner"></div>
+<div class="cards" id="cards"><div class="stat"><span>Loading…</span></div></div>
+<div class="grid"><div>
+ <div class="box"><h2>Road-risk map</h2>
+  <div class="tools"><label>Issue <select id="ftype"><option value="">All types</option><option value="pothole">Pothole</option><option value="waterlogging">Waterlogging</option><option value="damaged_surface">Damaged surface</option><option value="obstruction">Obstruction</option><option value="other">Other</option></select></label>
+   <label><input type="checkbox" id="fver" checked> Verified</label><label><input type="checkbox" id="funv" checked> Unverified</label><label><input type="checkbox" id="frej"> Rejected</label>
+   <label><input type="checkbox" id="fseg" checked> Priority segments</label><label><input type="checkbox" id="frisk" checked> Predicted risk</label></div>
+  <div id="map"></div>
+  <div class="legend"><span><i style="background:#e0662b"></i>Pothole</span><span><i style="background:#1f78d1"></i>Waterlogging</span><span><i style="background:#8d6e4b"></i>Damaged surface</span><span><i style="background:#b3263e"></i>Obstruction</span><span><i style="background:#5b6b72"></i>Other</span>
+   <span><i style="background:#12232b;border:2px solid #12232b"></i>Verified (solid)</span><span><i style="border:2px dashed #5b6b72"></i>Unverified (hollow, dashed)</span><span><i style="border:2px dashed var(--risk)"></i>Predicted risk (estimate, not a report)</span></div></div>
+ <div class="box" id="prio"><h2>Maintenance priority</h2><div id="priolist" class="hint">Loading…</div><p class="hint" id="priodisc"></p></div>
+ <div class="box" id="rec"><h2>Recurring problems</h2><p class="hint" id="recrule"></p><div id="reclist" class="hint">Loading…</div></div>
+</div><aside>
+ <div class="box" id="detail"><h2>Selected item</h2><div class="hint">Click a marker, a risk ring or a priority segment on the map, or an item in the lists.</div></div>
+ <div class="box"><h2>Report a road issue</h2>
+  <label for="ftype2">Issue type</label><select id="ftype2"><option value="pothole">Pothole</option><option value="waterlogging">Waterlogging</option><option value="damaged_surface">Damaged road surface</option><option value="obstruction">Road obstruction</option><option value="other">Other</option></select>
+  <label>Location</label><div class="row"><input id="rlat" placeholder="latitude" readonly><input id="rlon" placeholder="longitude" readonly><button id="pick" style="flex:0 0 auto">Pick on map</button></div><p class="hint" id="pickhint">Click “Pick on map”, then click the exact spot.</p>
+  <label for="rdesc">Description (optional, max 500)</label><textarea id="rdesc" rows="2" maxlength="500" placeholder="e.g. deep pothole in the left lane"></textarea>
+  <div class="row"><div><label for="rsev">Severity</label><select id="rsev"><option value="">Not supplied</option><option value="1">1 - minor</option><option value="2">2</option><option value="3">3 - moderate</option><option value="4">4</option><option value="5">5 - severe</option></select></div>
+  <div><label for="robs">Observed (India time)</label><input type="datetime-local" id="robs"></div></div>
+  <button class="primary" id="rsubmit" style="width:100%;margin-top:10px">Submit report</button><div id="rmsg" class="hint"></div>
+  <p class="hint">Reports are stored anonymously (no name or email; only a salted hash to detect repeats) and stay <b>unverified</b> community information until a moderator verifies them.</p></div>
+ <div class="box"><h2>Risk estimates</h2><div id="risklist" class="hint">Loading…</div><div id="mlstatus" class="hint"></div></div>
+ <div class="box"><h2>Data &amp; moderation</h2><p class="hint">Demonstration data is SIMULATED and labelled as such everywhere.</p>
+  <div class="row"><button id="seed">Load simulated demo data</button><button id="unseed">Remove demo data</button></div>
+  <label for="tok">Moderator token (optional, kept in memory only)</label><input id="tok" type="password" autocomplete="off" placeholder="CITYPULSE_ADMIN_TOKEN">
+  <button id="train" style="margin-top:8px;width:100%">Train risk model (demo data allowed)</button><div id="dmsg" class="hint"></div></div>
+</aside></div></div>
+<script src="/static/vendor/leaflet.js"></script>
+<script>
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const TC={pothole:'#e0662b',waterlogging:'#1f78d1',damaged_surface:'#8d6e4b',obstruction:'#b3263e',other:'#5b6b72'},TN={pothole:'Pothole',waterlogging:'Waterlogging',damaged_surface:'Damaged surface',obstruction:'Obstruction',other:'Other'};
+const SRC={community_report:'Community report',demo_seed:'SIMULATED demonstration data'};
+const st={reports:[],segs:[],risks:[],summary:null,pick:false,pt:null,tok:''};
+const map=L.map('map').setView([12.9716,77.5946],11);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+const lyRep=L.layerGroup().addTo(map),lySeg=L.layerGroup().addTo(map),lyRisk=L.layerGroup().addTo(map),lyPick=L.layerGroup().addTo(map);
+const fmt=s=>s?new Date(s.endsWith('Z')?s:s+'Z').toLocaleString('en-IN',{timeZone:'Asia/Kolkata',dateStyle:'medium',timeStyle:'short'})+' IST':'n/a';
+async function api(u,o){const r=await fetch(u,o),j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(typeof j.detail==='string'?j.detail:'Request failed');e.errors=j.errors;e.status=r.status;throw e}return j}
+function badges(){const s=st.summary;if(!s)return;const b=[];
+  b.push(s.data_mode=='demonstration'?['b-sim','DEMO DATA (simulated)']:s.data_mode=='real'?['b-ok','Community reports']:s.data_mode=='mixed'?['b-sim','Mixed: includes simulated data']:['b-ml','No reports yet']);
+  b.push(s.graph_source=='openstreetmap'?['b-ok','Roads: OpenStreetMap']:['b-sim','Roads: DEMO network']);
+  $('badges').innerHTML=b.map(x=>`<span class="badge ${x[0]}">${x[1]}</span>`).join('');
+  $('banner').innerHTML=s.demo_data_present?'<div class="banner"><b>Simulated data.</b> Reports marked as demonstration data were generated by a simulator for this demo. They are not real road conditions, and any counts, rankings or risk estimates built from them are illustrative only.</div>':''}
+function cards(){const s=st.summary,p=s.predicted_risks;
+  $('cards').innerHTML=[
+   ['Submitted reports',s.total_reports,`${s.by_status.unverified} unverified · ${s.by_status.verified} verified · ${s.by_status.rejected} rejected`+(s.demo_data_present?' · includes simulated':'')],
+   ['Verified road issues',s.verified_reports,'Confirmed by a moderator'+(s.by_source.demo_seed?' (demo: simulated)':'')],
+   ['Recurring locations',s.recurring_locations,`${s.recurring_issue_groups} repeated issue group(s)`],
+   ['High-priority segments',s.high_priority_segments,`score ≥ ${s.high_priority_threshold} · decision support only`],
+   ['Predicted risks',p.available?p.count:'—',p.available?esc(p.label):esc(p.reason)]].map(c=>`<div class="stat"><span class="t">${c[0]}</span><b>${c[1]}</b><span>${c[2]}</span></div>`).join('')}
+function repStyle(r){const c=TC[r.issue_type];return r.status=='verified'?{radius:8,color:'#12232b',weight:3,fillColor:c,fillOpacity:.95}:r.status=='rejected'?{radius:5,color:'#9aa6aa',weight:1,fillColor:'#cfd6d8',fillOpacity:.5}:{radius:7,color:c,weight:2,dashArray:'3 3',fillColor:c,fillOpacity:.2}}
+function drawMap(){
+  lyRep.clearLayers();lySeg.clearLayers();lyRisk.clearLayers();const t=$('ftype').value;
+  if($('fseg').checked)st.segs.slice(0,15).forEach(s=>{if(!s.geometry)return;const col=s.priority.score>=st.summary.high_priority_threshold?'#b3263e':'#d9a21a';
+    L.polyline(s.geometry,{color:col,weight:6,opacity:.45}).bindTooltip(`#${s.rank} ${esc(s.road)} · priority ${s.priority.score}`).on('click',()=>showSeg(s)).addTo(lySeg)});
+  st.reports.forEach(r=>{if(t&&r.issue_type!=t)return;if(r.status=='verified'&&!$('fver').checked||r.status=='unverified'&&!$('funv').checked||r.status=='rejected'&&!$('frej').checked)return;
+    L.circleMarker([r.lat,r.lon],repStyle(r)).bindTooltip(`${TN[r.issue_type]} · ${r.status}${r.simulated?' · simulated':''}`).on('click',e=>{L.DomEvent.stop(e);showRep(r)}).addTo(lyRep)});
+  if($('frisk').checked)st.risks.filter(x=>x.score>=st.summary.predicted_risks.threshold).forEach(x=>{
+    L.circleMarker(x.midpoint,{radius:15,color:'#7b3fc4',weight:2,dashArray:'6 4',fill:false}).bindTooltip(`PREDICTED risk (estimate, not a report) · ${Math.round(x.score*100)}%`).on('click',e=>{L.DomEvent.stop(e);showRisk(x)}).addTo(lyRisk)})}
+function kv(rows){return '<dl class="kv">'+rows.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('')+'</dl>'}
+function showRep(r){const s=st.segs.find(x=>r.segment&&x.key==r.segment.key);
+  const mod=st.tok?`<div class="row" style="margin-top:8px"><button data-s="verified">Verify</button><button data-s="rejected">Reject</button><button data-s="unverified">Reset</button></div>`:'';
+  $('detail').innerHTML='<h2>Selected report</h2>'+kv([['Issue type',`<b style="color:${TC[r.issue_type]}">${TN[r.issue_type]}</b>`],['Location',r.segment?`${esc(r.segment.road)} <span class="hint">(segment ${esc(r.segment.key)}, ${r.segment.snap_distance_km} km from the point)</span>`:`${r.lat.toFixed(5)}, ${r.lon.toFixed(5)} <span class="hint">(not matched to a mapped road segment)</span>`],
+    ['Observed',fmt(r.observed_at)],['Submitted',fmt(r.created_at)],['Status',r.status=='verified'?'<span class="badge b-ok">Verified</span>':r.status=='rejected'?'<span class="badge">Rejected</span>':'<span class="badge b-sim">Unverified community report</span>'],
+    ['Severity',r.severity?`${r.severity} / 5`:'not supplied'],['Data source',r.simulated?'<span class="badge b-sim">SIMULATED demonstration data</span>':'Community report'],['Description',esc(r.description)||'<i>none</i>'],
+    ['Segment priority',s?`rank #${s.rank}, score ${s.priority.score}`:'n/a']])+mod+'<p class="hint">Unverified reports are not treated as ground truth.</p>';
+  $('detail').querySelectorAll('button[data-s]').forEach(b=>b.onclick=async()=>{try{await api(`/api/citypulse/reports/${r.id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json','X-Admin-Token':st.tok},body:JSON.stringify({status:b.dataset.s})});await load()}catch(e){$('detail').insertAdjacentHTML('beforeend',`<p class="err">${esc(e.message)}</p>`)}})}
+function factors(s){return s.priority.factors.map(f=>`<div class="factor"><span>${f.name}</span><div class="bar"><div style="width:${f.value*100}%"></div></div><b>${f.points}</b></div><div class="hint" style="margin:0 0 2px 96px">${esc(f.explanation)}</div>`).join('')+(s.priority.not_available.length?`<p class="hint">Not available for this segment (weights renormalised): ${s.priority.not_available.join(', ')}.</p>`:'')}
+function showSeg(s){if(s.geometry)map.fitBounds(L.latLngBounds(s.geometry),{maxZoom:15,padding:[40,40]});
+  $('detail').innerHTML=`<h2>Road segment #${s.rank}</h2><h4 style="margin:0 0 6px">${esc(s.road)}</h4>`+kv([['Priority score',`<b>${s.priority.score}</b> / 100`],['Reports',`${s.raw_reports} raw, ${s.independent_observations} independent`],['Verified / unverified',`${s.statuses.verified} / ${s.statuses.unverified}`],
+    ['Recurring',s.recurring.length?s.recurring.map(r=>`${TN[r.issue_type]} (${r.episodes} episodes)`).join(', '):'no'],['Last observed',fmt(s.last_observed)],['Data source',s.simulated?'<span class="badge b-sim">includes SIMULATED data</span>':'Community reports']])
+   +'<h2 style="margin-top:10px">Why this score</h2>'+factors(s)+`<p class="hint">${esc(s.priority.label)}</p>`}
+function showRisk(x){const m=x.ml,b=x.baseline;
+  $('detail').innerHTML=`<h2>Predicted risk</h2><div class="banner" style="margin-bottom:8px">This is an <b>estimate</b>, not a confirmed incident.</div><h4 style="margin:0 0 6px">${esc(x.road)}</h4>`
+   +kv([['Baseline index',`${Math.round(b.index*100)}% <span class="hint">(uncalibrated heuristic, next ${b.horizon_days} days)</span>`],...(m?[['ML estimate',`${Math.round(m.probability*100)}% <span class="badge ${m.kind=='ml-demo-simulated'?'b-sim':'b-ml'}">${m.kind=='ml-demo-simulated'?'trained on SIMULATED data':m.kind}</span>`]]:[])])
+   +'<h2 style="margin-top:10px">How the baseline is computed</h2>'+b.explanation.map(e=>`<div class="hint">${esc(e)}</div>`).join('')
+   +(m?'<h2 style="margin-top:10px">Top ML factors (log-odds vs an average segment)</h2>'+m.top_contributions.map(c=>`<div class="hint">${esc(c.feature)} = ${c.value}: <b>${c.contribution_logodds>0?'+':''}${c.contribution_logodds}</b></div>`).join('')+`<p class="hint">${esc(m.caveat)}</p>`:'')+`<p class="hint">${esc(b.caveat)}</p>`;
+  map.setView(x.midpoint,14)}
+function lists(){
+  const S=st.segs;$('priolist').innerHTML=S.length?S.slice(0,8).map(s=>`<div class="item" data-k="${s.key}"><h4><span>#${s.rank} ${esc(s.road)}</span><b>${s.priority.score}</b></h4><div class="bar"><div style="width:${s.priority.score}%;background:${s.priority.score>=st.summary.high_priority_threshold?'var(--sev)':'var(--mod)'}"></div></div>
+    <div>${s.recurring.map(r=>`<span class="pill">repeat: ${TN[r.issue_type]}</span>`).join('')}${s.simulated?'<span class="pill">simulated data</span>':''}</div></div>`).join(''):'<div class="hint">No reports yet. Submit one, or load the simulated demonstration data.</div>';
+  document.querySelectorAll('#priolist .item').forEach(e=>e.onclick=()=>showSeg(S.find(s=>s.key==e.dataset.k)));
+  const R=S.filter(s=>s.recurring.length);$('reclist').innerHTML=R.length?R.slice(0,8).map(s=>`<div class="item" data-k="${s.key}"><h4><span>${esc(s.road)}</span></h4>${s.recurring.map(r=>`<span class="pill">${TN[r.issue_type]}: ${r.episodes} episodes, ${r.distinct_reporters} reporters</span>`).join('')}</div>`).join(''):'<div class="hint">No recurring problems under the current rule.</div>';
+  document.querySelectorAll('#reclist .item').forEach(e=>e.onclick=()=>showSeg(S.find(s=>s.key==e.dataset.k)));
+  const K=st.risks.slice(0,5);$('risklist').innerHTML=K.length?K.map(x=>`<div class="item" data-k="${x.key}"><h4><span>${esc(x.road)}</span><b>${Math.round(x.score*100)}%</b></h4><span class="pill b-risk">estimate</span><span class="pill">${x.ml?(x.ml.kind=='ml-demo-simulated'?'ML (simulated training data)':'ML'):'baseline heuristic'}</span></div>`).join(''):'<div class="hint">Needs report history. No estimates yet.</div>';
+  document.querySelectorAll('#risklist .item').forEach(e=>e.onclick=()=>showRisk(st.risks.find(x=>x.key==e.dataset.k)))}
+async function mlStatus(){try{const m=await api('/api/citypulse/ml/status');
+  $('mlstatus').innerHTML=!m.trained?`<b>No ML model.</b> ${esc(m.reason)}`:`<b>ML model (${esc(m.status)})</b>${m.trained_on_simulated?' <span class="badge b-sim">trained on SIMULATED data, not validated</span>':m.validated?' <span class="badge b-ok">validated on real data</span>':' <span class="badge b-sim">not validated</span>'}<br>Held-out test (${m.metrics.rows.test} rows, ${m.metrics.test_model.positives} positives): AUC ${m.metrics.test_model.roc_auc} vs baseline ${m.metrics.test_baseline_heuristic.roc_auc}; log loss ${m.metrics.test_model.log_loss} vs ${m.metrics.test_baseline_heuristic.log_loss}.<br>${m.limitations.map(esc).join(' ')}`}catch(e){$('mlstatus').textContent=''}}
+async function load(){
+  try{const [s,r,g,k]=await Promise.all([api('/api/citypulse/summary'),api('/api/citypulse/reports?limit=2000'),api('/api/citypulse/segments?limit=200'),api('/api/citypulse/risk?limit=40')]);
+    st.summary=s;st.reports=r.reports;st.segs=g.segments;st.risks=k.risks;$('recrule').textContent=g.recurrence_rule;$('priodisc').textContent='Decision-support recommendation for further inspection. Not an official municipal decision or engineering assessment.';
+    badges();cards();lists();drawMap();mlStatus()}
+  catch(e){$('cards').innerHTML=`<div class="stat"><span class="err">Could not load CityPulse data: ${esc(e.message)}. Is the backend running?</span></div>`}}
+['ftype','fver','funv','frej','fseg','frisk'].forEach(i=>$(i).onchange=()=>st.summary&&drawMap());
+const ist=()=>{const d=new Date(Date.now()+(330+new Date().getTimezoneOffset())*60000);return d.toISOString().slice(0,16)};
+$('robs').value=ist();$('robs').max=ist();
+$('pick').onclick=()=>{st.pick=!st.pick;$('pick').classList.toggle('on',st.pick);$('pickhint').textContent=st.pick?'Click the exact spot on the map…':'Click “Pick on map”, then click the exact spot.'};
+map.on('click',e=>{if(!st.pick)return;st.pt=e.latlng;$('rlat').value=e.latlng.lat.toFixed(6);$('rlon').value=e.latlng.lng.toFixed(6);lyPick.clearLayers();L.circleMarker(e.latlng,{radius:9,color:'#0b6e7d',weight:3,fillOpacity:.2}).addTo(lyPick);st.pick=false;$('pick').classList.remove('on');$('pickhint').textContent='Location selected.'});
+$('rsubmit').onclick=async()=>{const m=$('rmsg');
+  if(!st.pt){m.className='err hint';m.textContent='Pick a location on the map first.';return}
+  const body={issue_type:$('ftype2').value,lat:st.pt.lat,lon:st.pt.lng,description:$('rdesc').value,observed_at:$('robs').value,severity:$('rsev').value?+$('rsev').value:null};
+  $('rsubmit').disabled=true;m.className='hint';m.textContent='Submitting…';
+  try{const j=await api('/api/citypulse/reports',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    m.className='ok hint';m.textContent=j.message+(j.warnings.length?' '+j.warnings.join(' '):'');$('rdesc').value='';lyPick.clearLayers();st.pt=null;$('rlat').value=$('rlon').value='';await load();showRep(j.report)}
+  catch(e){m.className='err hint';m.textContent=(e.errors?Object.entries(e.errors).map(([k,v])=>`${k}: ${v}`).join('; '):e.message)}finally{$('rsubmit').disabled=false}};
+$('tok').oninput=()=>st.tok=$('tok').value;
+$('seed').onclick=async()=>{$('dmsg').className='hint';$('dmsg').textContent='Generating simulated reports…';try{await api('/api/citypulse/demo/seed?replace=true',{method:'POST'});$('dmsg').textContent='Simulated demonstration data loaded.';await load()}catch(e){$('dmsg').className='err hint';$('dmsg').textContent=e.message}};
+$('unseed').onclick=async()=>{try{const j=await api('/api/citypulse/demo',{method:'DELETE'});$('dmsg').className='hint';$('dmsg').textContent=`Removed ${j.deleted} simulated reports.`;await load()}catch(e){$('dmsg').className='err hint';$('dmsg').textContent=e.message}};
+$('train').onclick=async()=>{$('dmsg').className='hint';$('dmsg').textContent='Training…';try{const j=await api('/api/citypulse/ml/train?include_demo=true',{method:'POST',headers:{'X-Admin-Token':st.tok}});$('dmsg').textContent=`Model status: ${j.status}${j.reason?' - '+j.reason:''}`;await load()}catch(e){$('dmsg').className='err hint';$('dmsg').textContent=e.message}};
+load();
+</script></body></html>
